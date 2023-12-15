@@ -2,7 +2,10 @@ const express = require("express");
 const app = express();
 const fs = require("fs");
 const cors = require("cors");
+require('dotenv').config();
 const port = 3000;
+
+const redUrlPath = "./redirect-urls.json"
 
 const redirects = require('./redirect-urls.json');
 
@@ -14,21 +17,56 @@ function log(req, res, next) {
 }
 app.use(log);
 
-app.get("/profs", async function (req, res) {
-    try{
-        await client.connect()
-        const database = client.db("ratings");
-        const collection = database.collection("profrating");
-        const results = await collection.find().sort({id:1}).toArray();
-        const myArray = results.map((document) => document);
-        res.end(JSON.stringify(myArray))
-        await client.close()
-    }catch{
-        res.status=500
+const authenticate = (req, res, next) => {
+    const token = req.headers['authorization']?.split(' ')[1];
+    const validToken = process.env.BEARER_TOKEN || 'defaultToken'; // Fallback, falls keine Umgebungsvariable gefunden wurde
+
+    console.log(validToken);
+
+    if (token !== validToken) {
+      return res.status(401).send('Unauthorized');
     }
+
+    next();
+};
+
+app.get('/entries', authenticate, (req, res) => {
+    res.send(redirects);
 });
 
-app.post("/entry", authenticate, (req, res) => {
+app.get("/:slug", function (req, res) {
+    fs.readFile(redUrlPath,"utf8",function (err,data){
+        const urls = JSON.parse(data)
+        try {
+            slug = req.params.slug
+            return res.redirect(urls[slug])
+        } catch  {
+            return res.status(404).send("slug does not exist.")
+        }
+    })
+});
+
+app.delete("/entry/:slug", function (req, res) {
+    fs.readFile(redUrlPath, "utf8", function (err,data){
+        const urls = JSON.parse(data)
+        try {
+            console.log(urls)
+            if(urls.hasOwnProperty(req.params.slug)){
+            delete urls[req.params.slug]
+            }
+            console.log(urls)
+            fs.writeFile(redUrlPath,JSON.stringify(urls),(err)=>{
+                console.log(err)
+            })
+            return res.status(200).send("deleted")
+        } catch  {
+            return res.status(404).send("slug does not exist.")
+        }
+    })
+
+});
+
+app.post("/entry", (req, res) => {
     const url = req.body.url;
     const slug = req.body.slug || UUID.v4();
 
