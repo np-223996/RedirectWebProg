@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const fs = require("fs");
 const cors = require("cors");
-require('dotenv').config();
+// require('dotenv').config();
 const port = 3000;
 
 const redUrlPath = "./redirect-urls.json"
@@ -18,7 +18,7 @@ function log(req, res, next) {
 app.use(log);
 
 const authenticate = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1];
+    const token = req.headers['authorization'].split(' ')[1];
     const validToken = process.env.BEARER_TOKEN || 'defaultToken'; // Fallback, falls keine Umgebungsvariable gefunden wurde
 
     console.log(validToken);
@@ -46,8 +46,22 @@ app.get("/:slug", function (req, res) {
     })
 });
 
+app.delete('/entry/:slug', authenticate, (req, res) => {
+    const slug = req.params.slug;
+
+    if (redirects[slug]) {
+        delete redirects[slug];
+        // Speichern Sie die aktualisierten Daten in Ihrer JSON-Datei oder Datenbank
+        fs.writeFileSync('./redirects.json', JSON.stringify(redirects));
+        return res.status(200).send('Entry deleted');
+    }
+
+    return res.status(404).send('Entry not found');
+});
+
+/*
 app.delete("/entry/:slug", function (req, res) {
-    fs.readFile(redUrlPath, "utf8", function (err,data){
+    fs.readFileSync(redUrlPath, "utf8", function (err,data){
         const urls = JSON.parse(data)
         try {
             console.log(urls)
@@ -55,7 +69,7 @@ app.delete("/entry/:slug", function (req, res) {
             delete urls[req.params.slug]
             }
             console.log(urls)
-            fs.writeFile(redUrlPath,JSON.stringify(urls),(err)=>{
+            fs.writeFileSync(redUrlPath,JSON.stringify(urls),(err)=>{
                 console.log(err)
             })
             return res.status(200).send("deleted")
@@ -65,6 +79,7 @@ app.delete("/entry/:slug", function (req, res) {
     })
 
 });
+*/
 
 app.post("/entry", (req, res) => {
     const url = req.body.url;
