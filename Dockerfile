@@ -1,4 +1,4 @@
-From node:13-alpine
+FROM node:13-alpine
 
 ENV BEARER_TOKEN=secret
 
