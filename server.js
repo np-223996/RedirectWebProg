@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const fs = require("fs");
 const cors = require("cors");
+const UUID = require("uuid");
 // require('dotenv').config();
 const port = 3000;
 
@@ -46,7 +47,7 @@ app.get("/:slug", function (req, res) {
     })
 });
 
-app.delete('/entry/:slug', authenticate, (req, res) => {
+app.delete('/entry/:slug', (req, res) => {
     const slug = req.params.slug;
 
     if (redirects[slug]) {
